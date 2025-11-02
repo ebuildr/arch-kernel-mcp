@@ -54,18 +54,18 @@ echo "Updating MODULES line..."
 current_list=$(echo "$current_modules" | sed -n 's/^MODULES=(\(.*\))$/\1/p')
 
 # Create new modules list with vmd and nvme
+# VMD must come before NVMe for proper initialization
 if [ -z "$current_list" ]; then
     new_modules="MODULES=(vmd nvme)"
 else
-    # Add vmd and nvme if not present
-    new_list="$current_list"
-    if ! echo "$new_list" | grep -qw "vmd"; then
-        new_list="vmd $new_list"
+    # Remove vmd and nvme if they exist (to avoid duplicates and ensure correct order)
+    new_list=$(echo "$current_list" | sed 's/\<vmd\>//g' | sed 's/\<nvme\>//g' | sed 's/  */ /g' | sed 's/^ //;s/ $//')
+    # Add vmd and nvme at the beginning in correct order
+    if [ -z "$new_list" ]; then
+        new_modules="MODULES=(vmd nvme)"
+    else
+        new_modules="MODULES=(vmd nvme $new_list)"
     fi
-    if ! echo "$new_list" | grep -qw "nvme"; then
-        new_list="nvme $new_list"
-    fi
-    new_modules="MODULES=($new_list)"
 fi
 
 echo "New configuration: $new_modules"

@@ -150,9 +150,9 @@ async def list_kernels_impl() -> Sequence[TextContent]:
     # Filter for kernel packages
     kernels = []
     for line in stdout.splitlines():
-        if "linux" in line.lower() and any(
-            pkg in line for pkg in ["linux ", "linux-", "linux-lts", "linux-zen", "linux-hardened"]
-        ):
+        # Match lines starting with 'linux' followed by space or dash
+        parts = line.split()
+        if parts and parts[0].lower().startswith(('linux ', 'linux-')) or parts[0].lower() == 'linux':
             kernels.append(line)
     
     result = "Installed kernel packages:\n\n"
@@ -183,12 +183,15 @@ async def list_kernel_packages_impl(search_term: str) -> Sequence[TextContent]:
         )]
     
     # Filter for actual kernel packages
+    # Note: 'community' has been merged into 'extra' in recent Arch Linux
     lines = stdout.splitlines()
     filtered_lines = []
     for i, line in enumerate(lines):
-        if line.startswith(("core/linux", "extra/linux", "community/linux")):
+        # Match lines starting with repo/linux (flexible for any repo name)
+        if '/' in line and line.split('/', 1)[1].startswith('linux'):
             filtered_lines.append(line)
-            if i + 1 < len(lines) and not lines[i + 1].startswith((" ", "core/", "extra/", "community/")):
+            # Add description line if it exists (doesn't start with repo/)
+            if i + 1 < len(lines) and not lines[i + 1].startswith((" ", "\t")) and '/' not in lines[i + 1]:
                 filtered_lines.append(lines[i + 1])
     
     result = "Available kernel packages:\n\n"
