@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "arch-kernel": {
+      "command": "arch-kernel-mcp",
+      "args": []
+    }
+  }
+}
