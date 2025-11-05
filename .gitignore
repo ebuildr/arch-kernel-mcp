@@ -9,3 +9,9 @@ dist/
 *~
 .vscode/
 .idea/
+
+# Test artifacts
+test-client.js
+test-client.js.map
+comprehensive-test.js
+comprehensive-test.js.map

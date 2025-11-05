@@ -95,6 +95,27 @@ npm run build
 npm run watch
 ```
 
+### Testing
+
+Run the basic MCP protocol test:
+```bash
+npm test
+```
+
+Run comprehensive validation tests:
+```bash
+npm run test:comprehensive
+```
+
+The tests validate:
+- MCP protocol compliance
+- All resources, tools, and prompts
+- Error handling
+- JSON formatting
+- Argument validation
+
+See [MCP_IMPLEMENTATION.md](./MCP_IMPLEMENTATION.md) for detailed implementation documentation.
+
 ## Common Use Cases
 
 ### Check current kernel
