@@ -18,6 +18,8 @@ import {
   installKernel,
   removeKernel,
   updateGrub,
+  regenerateGrubConfig,
+  generateGrubEntry,
   updateKernels,
   getKernelInfo,
   getBootloader,
@@ -314,10 +316,32 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'update_grub',
-        description: 'Update GRUB bootloader configuration (requires sudo privileges)',
+        description: 'Regenerate entire GRUB configuration (requires sudo, use with caution)',
         inputSchema: {
           type: 'object',
           properties: {},
+        },
+      },
+      {
+        name: 'generate_grub_entry',
+        description: 'SAFE: Generate a new GRUB boot entry for a custom kernel without modifying existing entries (requires sudo)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            entry_name: {
+              type: 'string',
+              description: 'Name for the new boot entry (e.g., "EndeavourOS CUDA Kernel")',
+            },
+            kernel_image: {
+              type: 'string',
+              description: 'Kernel image filename in /boot (e.g., "vmlinuz-linux-cuda", default: "vmlinuz-linux")',
+            },
+            initramfs_image: {
+              type: 'string',
+              description: 'Initramfs image filename in /boot (e.g., "initramfs-linux-cuda.img", default: "initramfs-linux.img")',
+            },
+          },
+          required: ['entry_name'],
         },
       },
       {
@@ -525,6 +549,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: result,
+            },
+          ],
+        };
+      }
+
+      case 'generate_grub_entry': {
+        const entryName = args?.entry_name as string;
+        const kernelImage = args?.kernel_image as string;
+        const initramfsImage = args?.initramfs_image as string;
+
+        if (!entryName) {
+          throw new Error('entry_name is required');
+        }
+
+        const script = await generateGrubEntry(entryName, kernelImage, initramfsImage);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: script,
             },
           ],
         };
