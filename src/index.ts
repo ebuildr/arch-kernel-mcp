@@ -23,6 +23,31 @@ import {
   getBootloader,
 } from './kernel-utils.js';
 
+import {
+  getMkinitcpioConfig,
+  getConfiguredModules,
+  addInitramfsModule,
+  removeInitramfsModule,
+  rebuildInitramfs,
+  rebuildInitramfsForKernel,
+  listInitramfsModules,
+  checkInitramfsModule,
+  analyzeInitramfs,
+  listKernelPresets,
+} from './initramfs-utils.js';
+
+import {
+  detectVMDHardware,
+  isVMDModuleLoaded,
+  isVMDModuleAvailable,
+  getVMDModuleInfo,
+  listVMDManagedDevices,
+  getNVMeBehindVMD,
+  getVMDStatus,
+  requiresVMDForBoot,
+  diagnoseVMD,
+} from './vmd-utils.js';
+
 // Create MCP server
 const server = new Server(
   {
@@ -65,6 +90,36 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
         mimeType: 'text/plain',
         name: 'Bootloader Info',
         description: 'Information about the system bootloader',
+      },
+      {
+        uri: 'initramfs://config',
+        mimeType: 'text/plain',
+        name: 'Initramfs Configuration',
+        description: 'Contents of /etc/mkinitcpio.conf',
+      },
+      {
+        uri: 'initramfs://modules',
+        mimeType: 'application/json',
+        name: 'Configured Initramfs Modules',
+        description: 'List of modules configured in mkinitcpio.conf',
+      },
+      {
+        uri: 'initramfs://analysis',
+        mimeType: 'application/json',
+        name: 'Initramfs Analysis',
+        description: 'Detailed analysis of initramfs configuration vs actual content',
+      },
+      {
+        uri: 'vmd://status',
+        mimeType: 'application/json',
+        name: 'Intel VMD Status',
+        description: 'Status of Intel Volume Management Device',
+      },
+      {
+        uri: 'vmd://diagnosis',
+        mimeType: 'application/json',
+        name: 'VMD Diagnosis',
+        description: 'Diagnostic information and recommendations for VMD configuration',
       },
     ],
   };
@@ -123,6 +178,71 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
               uri,
               mimeType: 'text/plain',
               text: `Detected bootloader: ${bootloader}`,
+            },
+          ],
+        };
+      }
+
+      case 'initramfs://config': {
+        const config = await getMkinitcpioConfig();
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'text/plain',
+              text: config,
+            },
+          ],
+        };
+      }
+
+      case 'initramfs://modules': {
+        const modules = await getConfiguredModules();
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(modules, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'initramfs://analysis': {
+        const analysis = await analyzeInitramfs();
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(analysis, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'vmd://status': {
+        const status = await getVMDStatus();
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(status, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'vmd://diagnosis': {
+        const diagnosis = await diagnoseVMD();
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(diagnosis, null, 2),
             },
           ],
         };
@@ -225,6 +345,96 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'get_bootloader',
         description: 'Detect which bootloader is being used (GRUB or systemd-boot)',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      // Initramfs management tools
+      {
+        name: 'check_initramfs_modules',
+        description: 'Check which modules are configured in mkinitcpio.conf',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'add_initramfs_module',
+        description: 'Add a module to /etc/mkinitcpio.conf and rebuild initramfs (requires sudo)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            module_name: {
+              type: 'string',
+              description: 'Name of the kernel module to add (e.g., vmd, nvme)',
+            },
+            rebuild: {
+              type: 'boolean',
+              description: 'Whether to automatically rebuild initramfs after adding module (default: true)',
+            },
+          },
+          required: ['module_name'],
+        },
+      },
+      {
+        name: 'remove_initramfs_module',
+        description: 'Remove a module from /etc/mkinitcpio.conf (requires sudo)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            module_name: {
+              type: 'string',
+              description: 'Name of the kernel module to remove',
+            },
+          },
+          required: ['module_name'],
+        },
+      },
+      {
+        name: 'rebuild_initramfs',
+        description: 'Rebuild initramfs for all installed kernels (requires sudo)',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'analyze_initramfs',
+        description: 'Analyze initramfs configuration and identify missing or extra modules',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      // VMD detection and management tools
+      {
+        name: 'detect_vmd_hardware',
+        description: 'Detect Intel Volume Management Device (VMD) hardware controllers',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'check_vmd_status',
+        description: 'Get comprehensive VMD status including hardware, module, and managed devices',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'diagnose_vmd',
+        description: 'Diagnose VMD configuration and get recommendations for issues',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'check_vmd_boot_requirement',
+        description: 'Check if system requires VMD module for booting (root on VMD-managed NVMe)',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -360,6 +570,132 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      // Initramfs management tools
+      case 'check_initramfs_modules': {
+        const modules = await getConfiguredModules();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(modules, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'add_initramfs_module': {
+        const moduleName = args?.module_name as string;
+        if (!moduleName) {
+          throw new Error('module_name is required');
+        }
+        const rebuild = args?.rebuild !== false; // default true
+
+        const addResult = await addInitramfsModule(moduleName);
+        let rebuildResult = '';
+
+        if (rebuild) {
+          rebuildResult = await rebuildInitramfs();
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `${addResult}\n${rebuildResult}`,
+            },
+          ],
+        };
+      }
+
+      case 'remove_initramfs_module': {
+        const moduleName = args?.module_name as string;
+        if (!moduleName) {
+          throw new Error('module_name is required');
+        }
+        const result = await removeInitramfsModule(moduleName);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result,
+            },
+          ],
+        };
+      }
+
+      case 'rebuild_initramfs': {
+        const result = await rebuildInitramfs();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result,
+            },
+          ],
+        };
+      }
+
+      case 'analyze_initramfs': {
+        const analysis = await analyzeInitramfs();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(analysis, null, 2),
+            },
+          ],
+        };
+      }
+
+      // VMD detection and management tools
+      case 'detect_vmd_hardware': {
+        const devices = await detectVMDHardware();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(devices, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'check_vmd_status': {
+        const status = await getVMDStatus();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(status, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'diagnose_vmd': {
+        const diagnosis = await diagnoseVMD();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(diagnosis, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'check_vmd_boot_requirement': {
+        const required = await requiresVMDForBoot();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `VMD required for boot: ${required}`,
+            },
+          ],
+        };
+      }
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -391,6 +727,18 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => {
       {
         name: 'kernel-troubleshooting',
         description: 'Common kernel issues and troubleshooting steps',
+      },
+      {
+        name: 'setup-dual-boot-vmd',
+        description: 'Guide for setting up dual boot with Intel VMD enabled',
+      },
+      {
+        name: 'troubleshoot-vmd-boot',
+        description: 'Troubleshoot boot failures related to Intel VMD',
+      },
+      {
+        name: 'configure-initramfs',
+        description: 'Guide for configuring initramfs modules',
       },
     ],
   };
@@ -435,6 +783,45 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
             content: {
               type: 'text',
               text: 'I am having issues with my current kernel (system crashes, hardware not working, etc.). What are my options for troubleshooting and potentially switching to a more stable kernel version?',
+            },
+          },
+        ],
+      };
+
+    case 'setup-dual-boot-vmd':
+      return {
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: 'I have a laptop with Intel VMD enabled and want to set up dual boot with Windows 11 and Arch Linux (or Endeavor OS). My Linux installation can\'t see the NVMe drive, or boots fail after installation. How do I configure my system for dual boot with VMD?',
+            },
+          },
+        ],
+      };
+
+    case 'troubleshoot-vmd-boot':
+      return {
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: 'My Arch Linux system won\'t boot after I enabled Intel VMD in BIOS, or I just installed Arch but it drops to an initramfs emergency shell on boot. I think this is related to Intel Volume Management Device (VMD). Can you diagnose and fix the issue?',
+            },
+          },
+        ],
+      };
+
+    case 'configure-initramfs':
+      return {
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: 'I need to add kernel modules to my initramfs so they load early in the boot process. Can you guide me through configuring /etc/mkinitcpio.conf and rebuilding the initramfs?',
             },
           },
         ],

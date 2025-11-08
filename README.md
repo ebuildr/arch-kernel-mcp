@@ -17,18 +17,33 @@ This MCP server has been **comprehensively validated** against the Model Context
 - [Success Summary](./SUCCESS_SUMMARY.md) - Project achievements and impact
 - [MCP Goals Validation](./MCP_GOALS_VALIDATION.md) - Detailed compliance validation
 - [Implementation Details](./MCP_IMPLEMENTATION.md) - Technical specification
+- [VMD Task Analysis](./VMD_TASK_ANALYSIS.md) - Intel VMD dual boot analysis
+- [VMD Implementation](./VMD_IMPLEMENTATION_SUMMARY.md) - VMD features implementation
 
 ## Features
 
 This MCP server provides comprehensive tools and resources for managing Linux kernels on Arch Linux systems:
 
-### Resources
+### Resources (9 total)
+
+**Kernel Resources:**
 - **Current Kernel**: View the currently running kernel version
 - **Installed Kernels**: List all installed kernel packages with version information
 - **Available Kernels**: Browse kernel packages available in repositories
 - **Bootloader Info**: Detect the system bootloader (GRUB or systemd-boot)
 
-### Tools
+**Initramfs Resources:**
+- **Initramfs Config**: View /etc/mkinitcpio.conf contents
+- **Configured Modules**: List modules configured in mkinitcpio.conf
+- **Initramfs Analysis**: Detailed analysis of configuration vs actual content
+
+**VMD Resources:**
+- **VMD Status**: Intel Volume Management Device hardware and module status
+- **VMD Diagnosis**: Automated diagnostics and recommendations
+
+### Tools (18 total)
+
+**Kernel Management:**
 - `list_kernels`: List all installed kernel packages
 - `get_current_kernel`: Get the currently running kernel version
 - `list_available_kernels`: List available kernel packages in repositories
@@ -39,10 +54,30 @@ This MCP server provides comprehensive tools and resources for managing Linux ke
 - `get_kernel_info`: Get detailed information about a specific kernel package
 - `get_bootloader`: Detect which bootloader is in use
 
-### Prompts
+**Initramfs Management:**
+- `check_initramfs_modules`: List modules configured in mkinitcpio.conf
+- `add_initramfs_module`: Add module to initramfs (requires sudo)
+- `remove_initramfs_module`: Remove module from initramfs (requires sudo)
+- `rebuild_initramfs`: Rebuild initramfs for all kernels (requires sudo)
+- `analyze_initramfs`: Analyze initramfs configuration
+
+**Intel VMD Detection:**
+- `detect_vmd_hardware`: Detect Intel VMD controllers
+- `check_vmd_status`: Get comprehensive VMD status
+- `diagnose_vmd`: Diagnose VMD configuration issues
+- `check_vmd_boot_requirement`: Check if VMD needed for boot
+
+### Prompts (6 total)
+
+**Kernel Prompts:**
 - **install-lts-kernel**: Guide for installing the LTS kernel
 - **switch-kernel**: Guide for switching between kernel versions
 - **kernel-troubleshooting**: Common kernel issues and solutions
+
+**VMD & Initramfs Prompts:**
+- **setup-dual-boot-vmd**: Guide for dual boot with Intel VMD
+- **troubleshoot-vmd-boot**: Fix VMD-related boot failures
+- **configure-initramfs**: Guide for configuring initramfs modules
 
 ## Installation
 
